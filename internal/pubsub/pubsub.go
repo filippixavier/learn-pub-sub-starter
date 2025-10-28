@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type SimpleQueueType int
@@ -14,14 +14,14 @@ const (
 	Durable
 )
 
-func PublishJSON[T any](ch *amqp091.Channel, exchange, key string, val T) error {
+func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 	body, err := json.Marshal(val)
 
 	if err != nil {
 		return err
 	}
 
-	err = ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp091.Publishing{
+	err = ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
 		ContentType: "application/json",
 		Body:        body,
 	})
@@ -30,28 +30,28 @@ func PublishJSON[T any](ch *amqp091.Channel, exchange, key string, val T) error 
 }
 
 func DeclareAndBind(
-	conn *amqp091.Connection,
+	conn *amqp.Connection,
 	exchange,
 	queueName,
 	key string,
 	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
-) (*amqp091.Channel, amqp091.Queue, error) {
+) (*amqp.Channel, amqp.Queue, error) {
 	ch, err := conn.Channel()
 
 	if err != nil {
-		return nil, amqp091.Queue{}, err
+		return nil, amqp.Queue{}, err
 	}
 
 	queue, err := ch.QueueDeclare(queueName, queueType == Durable, queueType == Transient, queueType == Transient, false, nil)
 
 	if err != nil {
-		return nil, amqp091.Queue{}, err
+		return nil, amqp.Queue{}, err
 	}
 
 	err = ch.QueueBind(queueName, key, exchange, false, nil)
 
 	if err != nil {
-		return nil, amqp091.Queue{}, err
+		return nil, amqp.Queue{}, err
 	}
 
 	return ch, queue, nil

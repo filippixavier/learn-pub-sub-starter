@@ -2,20 +2,18 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const CONNECTIONSTRING string = "amqp://guest:guest@localhost:5672/"
 
 func main() {
-	connexion, err := amqp091.Dial(CONNECTIONSTRING)
+	connexion, err := amqp.Dial(CONNECTIONSTRING)
 
 	if err != nil {
 		fmt.Println(err)
@@ -32,10 +30,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	pubsub.PublishJSON(ch, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	gamelogic.PrintServerHelp()
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigChan
-	log.Printf("Server gracefully stopped with %v\n", sig)
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+
+		switch words[0] {
+		case "pause":
+			fmt.Println("Sending pause message")
+			pubsub.PublishJSON(ch, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+		case "resume":
+			fmt.Println("Sending resume message")
+			pubsub.PublishJSON(ch, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
+		case "quit":
+			fmt.Println("Exiting server...")
+			return
+		default:
+			fmt.Println("unknown command")
+		}
+	}
 }

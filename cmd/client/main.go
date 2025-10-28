@@ -10,13 +10,13 @@ import (
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const CONNECTIONSTRING string = "amqp://guest:guest@localhost:5672/"
 
 func main() {
-	connexion, err := amqp091.Dial(CONNECTIONSTRING)
+	connexion, err := amqp.Dial(CONNECTIONSTRING)
 
 	if err != nil {
 		fmt.Println(err)

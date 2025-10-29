@@ -37,7 +37,13 @@ func main() {
 		return
 	}
 
-	pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, fmt.Sprintf("%s.%s", routing.PauseKey, username), routing.PauseKey, pubsub.Transient)
+	_, _, err = pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, fmt.Sprintf("%s.%s", routing.PauseKey, username), routing.PauseKey, pubsub.Transient)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+		return
+	}
 
 	gamestate := gamelogic.NewGameState(username)
 

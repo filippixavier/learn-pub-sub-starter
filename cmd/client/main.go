@@ -37,7 +37,19 @@ func main() {
 		return
 	}
 
-	_, _, err = pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, fmt.Sprintf("%s.%s", routing.PauseKey, username), routing.PauseKey, pubsub.Transient)
+	queueName := fmt.Sprintf("%s.%s", routing.PauseKey, username)
+
+	_, _, err = pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, queueName, routing.PauseKey, pubsub.Transient)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+		return
+	}
+
+	playerQueueName := fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, username)
+
+	moveChannel, _, err := pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, playerQueueName, routing.ArmyMovesPrefix+".*", pubsub.Transient)
 
 	if err != nil {
 		fmt.Println(err)
@@ -46,6 +58,22 @@ func main() {
 	}
 
 	gamestate := gamelogic.NewGameState(username)
+
+	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, queueName, routing.PauseKey, pubsub.Transient, handlerPause(gamestate))
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+		return
+	}
+
+	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, playerQueueName, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate))
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+		return
+	}
 
 	for {
 		words := gamelogic.GetInput()
@@ -61,11 +89,17 @@ func main() {
 				fmt.Println(err)
 			}
 		case "move":
-			_, err := gamestate.CommandMove(words)
+			move, err := gamestate.CommandMove(words)
 			if err != nil {
 				fmt.Println(err)
 			} else {
-				fmt.Println("Move worked!")
+				err := pubsub.PublishJSON(moveChannel, routing.ExchangePerilTopic, playerQueueName, move)
+
+				if err == nil {
+					fmt.Println("Move successfully broadcasted")
+				} else {
+					fmt.Println(err)
+				}
 			}
 		case "status":
 			gamestate.CommandStatus()

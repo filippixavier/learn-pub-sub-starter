@@ -1,9 +1,6 @@
 package pubsub
 
 import (
-	"context"
-	"encoding/json"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -13,21 +10,6 @@ const (
 	Transient SimpleQueueType = iota
 	Durable
 )
-
-func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
-	body, err := json.Marshal(val)
-
-	if err != nil {
-		return err
-	}
-
-	err = ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
-		ContentType: "application/json",
-		Body:        body,
-	})
-
-	return err
-}
 
 func DeclareAndBind(
 	conn *amqp.Connection,
@@ -42,7 +24,9 @@ func DeclareAndBind(
 		return nil, amqp.Queue{}, err
 	}
 
-	queue, err := ch.QueueDeclare(queueName, queueType == Durable, queueType == Transient, queueType == Transient, false, nil)
+	queue, err := ch.QueueDeclare(queueName, queueType == Durable, queueType == Transient, queueType == Transient, false, amqp.Table{
+		"x-dead-letter-exchange": "peril_dlx",
+	})
 
 	if err != nil {
 		return nil, amqp.Queue{}, err

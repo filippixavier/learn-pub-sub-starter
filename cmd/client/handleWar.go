@@ -14,8 +14,9 @@ func handlerWar(gs *gamelogic.GameState) func(gamelogic.RecognitionOfWar) pubsub
 		switch outcome {
 		case gamelogic.WarOutcomeNotInvolved:
 			return pubsub.NackRequeue
-		case gamelogic.WarOutcomeNoUnits,
-			gamelogic.WarOutcomeOpponentWon,
+		case gamelogic.WarOutcomeNoUnits:
+			return pubsub.NackDiscard
+		case gamelogic.WarOutcomeOpponentWon,
 			gamelogic.WarOutcomeYouWon,
 			gamelogic.WarOutcomeDraw:
 			return pubsub.Ack

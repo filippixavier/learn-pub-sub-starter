@@ -23,6 +23,8 @@ func main() {
 	defer connexion.Close()
 	fmt.Printf("Connection to %s successful!\n", CONNECTIONSTRING)
 
+	ch, err := connexion.Channel()
+
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -39,23 +41,7 @@ func main() {
 
 	queueName := fmt.Sprintf("%s.%s", routing.PauseKey, username)
 
-	_, _, err = pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, queueName, routing.PauseKey, pubsub.Transient)
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-		return
-	}
-
 	playerQueueName := fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, username)
-
-	moveChannel, _, err := pubsub.DeclareAndBind(connexion, routing.ExchangePerilDirect, playerQueueName, routing.ArmyMovesPrefix+".*", pubsub.Transient)
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-		return
-	}
 
 	gamestate := gamelogic.NewGameState(username)
 
@@ -67,7 +53,15 @@ func main() {
 		return
 	}
 
-	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, playerQueueName, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate))
+	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, playerQueueName, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate, ch))
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+		return
+	}
+
+	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, "war", routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate))
 
 	if err != nil {
 		fmt.Println(err)
@@ -93,7 +87,7 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			} else {
-				err := pubsub.PublishJSON(moveChannel, routing.ExchangePerilTopic, playerQueueName, move)
+				err := pubsub.PublishJSON(ch, routing.ExchangePerilTopic, playerQueueName, move)
 
 				if err == nil {
 					fmt.Println("Move successfully broadcasted")

@@ -61,7 +61,7 @@ func main() {
 		return
 	}
 
-	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, "war", routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate))
+	err = pubsub.SubscribeJSON(connexion, routing.ExchangePerilTopic, "war", routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate, ch))
 
 	if err != nil {
 		fmt.Println(err)

@@ -30,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, _, err = pubsub.DeclareAndBind(connexion, routing.ExchangePerilTopic, routing.GameLogSlug, fmt.Sprintf("%s.*", routing.GameLogSlug), pubsub.Durable)
+	err = pubsub.SubscribeGob(connexion, routing.ExchangePerilTopic, routing.GameLogSlug, fmt.Sprintf("%s.*", routing.GameLogSlug), pubsub.Durable, handlerLogs())
 
 	if err != nil {
 		fmt.Println(err)

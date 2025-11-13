@@ -22,6 +22,8 @@ func SubscribeGob[T any](
 		return err
 	}
 
+	ch.Qos(10, 0, false)
+
 	deliveryCh, err := ch.Consume(queueName, "", false, false, false, false, nil)
 
 	if err != nil {
